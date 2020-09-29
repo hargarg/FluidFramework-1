@@ -27,6 +27,7 @@ import { IFluidHTMLOptions, IFluidHTMLView } from "@fluidframework/view-interfac
 import { EditorView } from "prosemirror-view";
 import { nodeTypeKey } from "./fluidBridge";
 import { FluidCollabManager, IProvideRichTextEditor } from "./fluidCollabManager";
+import {LocalStorage} from './storage';
 
 function createTreeMarkerOps(
     treeRangeLabel: string,
@@ -119,6 +120,7 @@ export class ProseMirror extends EventEmitter
     private collabManager: FluidCollabManager;
     private view: ProseMirrorView;
     private readonly innerHandle: IFluidHandle<this>;
+    private LocalStorageModule;
 
     constructor(
         private readonly runtime: IFluidDataStoreRuntime,
@@ -139,7 +141,14 @@ export class ProseMirror extends EventEmitter
     }
 
     private async initialize() {
+        let initialState = {};
+        this.LocalStorageModule = new LocalStorage();
+        initialState = await this.LocalStorageModule.getInitialState();
+
+        console.log(this.runtime.getQuorum().getMembers());
+
         if (!this.runtime.existing) {
+            
             this.root = SharedMap.create(this.runtime, "root");
             const text = SharedString.create(this.runtime);
 
@@ -154,7 +163,7 @@ export class ProseMirror extends EventEmitter
         this.root = await this.runtime.getChannel("root") as ISharedMap;
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
 
-        this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
+        this.collabManager = new FluidCollabManager(this.text, this.runtime.loader, initialState);
 
         // Access for debugging
         // eslint-disable-next-line dot-notation

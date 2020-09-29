@@ -28,9 +28,12 @@ import { schema } from "./fluidSchema";
 import { FootnoteView } from "./footnoteView";
 import { openPrompt, TextField } from "./prompt";
 import { create as createSelection } from "./selection";
+import {LocalStorage} from './storage';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import OrderedMap = require("orderedmap");
+
+
 
 declare module "@fluidframework/core-interfaces" {
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -56,9 +59,17 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
     private readonly schema: Schema;
     private state: EditorState;
     private editorView: EditorView;
+    private storageModule;
+    //@ts-ignore
+    private allTransactions = [];
+    private firstLoad: boolean = true;
 
-    constructor(private readonly text: SharedString, private readonly loader: ILoader) {
+    constructor(private readonly text: SharedString, private readonly loader: ILoader, private readonly initialState: any) {
         super();
+
+        this.storageModule = new LocalStorage();
+
+        console.log(this.storageModule);
 
         this.plugin = new Plugin({
             state: {
@@ -79,6 +90,7 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
         // Initialize the base ProseMirror JSON data structure
         const nodeStack = new Array<IProseMirrorNode>();
         nodeStack.push({ type: "doc", content: [] });
+        //nodeStack.push({ type: "doc", content: this.initialState?.doc?.content });
 
         this.text.walkSegments((segment) => {
             const top = nodeStack[nodeStack.length - 1];
@@ -191,10 +203,21 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
             },
         }));
 
-        const doc = nodeStack.pop();
+        let doc = nodeStack.pop();
+
+        
+        
         console.log(JSON.stringify(doc, null, 2));
 
-        const fluidDoc = this.schema.nodeFromJSON(doc);
+        let fluidDoc = this.schema.nodeFromJSON(doc);
+
+        if(this.firstLoad){
+            fluidDoc = this.schema.nodeFromJSON(this.initialState);
+            console.log(this.initialState)
+            this.firstLoad = false;
+        }
+
+
         this.state = EditorState.create({
             doc: fluidDoc,
             plugins:
@@ -205,6 +228,8 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
                     .concat(this.plugin)
                     .concat(createSelection()),
         });
+
+        console.log(this.state.toJSON());
 
         let sliceBuilder: ProseMirrorTransactionBuilder;
 
@@ -244,6 +269,10 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
                 const tr = sliceBuilder.build();
                 this.apply(tr);
             });
+        
+        this.text.on("valueChanged",() => {
+            console.log("*********&&&&&&&&&&&&&&&**********8")
+        })
     }
 
     public getValue(): string {
@@ -286,6 +315,7 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
         /* eslint-enable @typescript-eslint/no-require-imports,
         import/no-internal-modules, import/no-unassigned-import */
 
+
         const editorView = new EditorView(
             textArea,
             {
@@ -309,6 +339,8 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
     }
 
     private apply(tr: Transaction) {
+        this.allTransactions.push(tr);
+        //this.storageModule.writeToFile(this.allTransactions);
         if (this.editorView) {
             this.editorView.dispatch(tr);
         } else {
@@ -320,6 +352,8 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
         if (tr.getMeta("fluid-local")) {
             return;
         }
+
+        console.log(this.text);
 
         for (const step of tr.steps) {
             // This is a good place for me to tweak changes and ignore local stuff...
