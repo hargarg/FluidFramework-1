@@ -27,6 +27,7 @@ import { IFluidHTMLOptions, IFluidHTMLView } from "@fluidframework/view-interfac
 import { EditorView } from "prosemirror-view";
 import { nodeTypeKey } from "./fluidBridge";
 import { FluidCollabManager, IProvideRichTextEditor } from "./fluidCollabManager";
+import { IStorageUtil, StorageUtil } from './storage';
 
 function createTreeMarkerOps(
     treeRangeLabel: string,
@@ -119,6 +120,7 @@ export class ProseMirror extends EventEmitter
     private collabManager: FluidCollabManager;
     private view: ProseMirrorView;
     private readonly innerHandle: IFluidHandle<this>;
+    private StorageUtilModule: IStorageUtil;
 
     constructor(
         private readonly runtime: IFluidDataStoreRuntime,
@@ -128,6 +130,8 @@ export class ProseMirror extends EventEmitter
 
         this.url = context.id;
         this.innerHandle = new FluidObjectHandle(this, this.url, runtime.IFluidHandleContext);
+
+        this.StorageUtilModule = new StorageUtil();
     }
 
     public async request(request: IRequest): Promise<IResponse> {
@@ -154,7 +158,16 @@ export class ProseMirror extends EventEmitter
         this.root = await this.runtime.getChannel("root") as ISharedMap;
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
 
-        this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
+        this.collabManager = new FluidCollabManager(this.text, this.runtime.loader, this.StorageUtilModule);
+        let schema = await this.collabManager.getSchema();
+
+        
+        let initialVal = await this.StorageUtilModule.getMardownDataAndConvertIntoNode(schema);
+
+        console.log(initialVal);
+        
+        await this.collabManager.initializeValue(initialVal);
+        
 
         // Access for debugging
         // eslint-disable-next-line dot-notation
