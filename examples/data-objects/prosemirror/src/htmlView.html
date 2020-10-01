@@ -1,0 +1,44 @@
+<html>
+    <head>
+
+        <script src="  https://unpkg.com/showdown/dist/showdown.min.js"></script>
+
+    </head>
+
+    <body>
+        <div id="editor">
+
+        </div>
+        <script>
+            let converter = new showdown.Converter();
+            let markdownText = "# Hello World";
+            const fileURL = "https://prosemirror.blob.core.windows.net/samples/sampletext.txt";
+
+            
+            async function displayHTMLFromMarkdown (){
+
+                let response = await fetch(fileURL);
+
+                if(response.ok){
+                    response.text().then(function(txt){
+                        console.log(txt);
+                        document.getElementById("editor").innerHTML = converter.makeHtml(txt);
+                    });
+                }else{
+                    console.log(response.status);
+                    console.log("Error occured in fetching data from Azure");
+                }
+
+            }
+
+            setInterval(() => {
+                displayHTMLFromMarkdown(markdownText);
+                console.log("//// Refreshed ////////");
+            },500)
+
+
+        </script>
+
+
+    </body>
+</html>
