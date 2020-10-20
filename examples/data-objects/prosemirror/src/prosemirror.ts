@@ -125,12 +125,14 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         let schema = await this.collabManager.getSchema();
         // this.StorageUtilModule = new StorageUtil(); //TO Be removed
         if (!isWebClient()) {
-            this.StorageUtilModule = new StorageUtil();
+            this.StorageUtilModule = new StorageUtil(this.context.documentId);
             let initialVal = await this.StorageUtilModule.getMardownDataAndConvertIntoNode(schema);
-            await this.collabManager.initializeValue(initialVal);
+            if (initialVal) {
+                await this.collabManager.initializeValue(initialVal)
+            };
         }
         else {
-            this.StorageUtilModule = new StorageUtil(true);
+            this.StorageUtilModule = new StorageUtil(this.context.documentId, true);
         }
         this.snapshotList = await this.StorageUtilModule.getSnapShotlist();
 

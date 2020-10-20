@@ -8,25 +8,27 @@ export interface IStorageUtil {
     getMardownDataAndConvertIntoNode(schema: any): Promise<any>;
     storeEditorStateAsMarkdown(schema: any, data: any): void;
     storeDeltaChangesOfEditor(schema: any, data: any): void;
-    getSnapShotlist() : Promise<any>;
-    getSnapShotContent(snapshot: string) : Promise<any>;
+    getSnapShotlist(): Promise<any>;
+    getSnapShotContent(snapshot: string): Promise<any>;
 }
 
 export class StorageUtil implements IStorageUtil {
     //  private readonly initialVal = "{\"doc\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Helllo This is frd\"}]}]},\"selection\":{\"type\":\"text\",\"anchor\":1,\"head\":1}}";
     private readonly storageKey = "FluidPOC_Prosemirror";
+    private readonly documentId;
     //  private readonly markdownStorageKey = "Markdown_Fluid";
     private azureStorage: AzureBlobStorage;
 
-    constructor(webView?: boolean) {
+    constructor(documentId: string, webView?: boolean) {
 
         // sessionStorage.setItem(this.storageKey, this.initialVal);
 
         // if (localStorage.getItem(this.markdownStorageKey) === null) {
         //     localStorage.setItem(this.markdownStorageKey, "# Hello World!");
         // }
+        this.documentId = documentId
         this.azureStorage = this.storageAccount(webView);
-        console.log(this.azureStorage);
+        // console.log(this.azureStorage);
         // this.azureStorage.putBlockBlob("samples", "sampletext.txt", "# Hello World!")
     }
 
@@ -35,7 +37,7 @@ export class StorageUtil implements IStorageUtil {
      */
 
     public getStorageData = async () => {
-        let data: any = await this.azureStorage.getBlockBlob("samples", "sampletext.txt"); // await sessionStorage.getItem(this.storageKey);
+        let data: any = await this.azureStorage.getBlockBlob("samples", this.generateFileName(this.documentId)); // await sessionStorage.getItem(this.storageKey);
         return JSON.parse(data);
     }
 
@@ -60,14 +62,18 @@ export class StorageUtil implements IStorageUtil {
 
     public getMardownDataAndConvertIntoNode = async (schema: any) => {
         //Gets the mardown and then convert into node data
+        try {
+            //replace the data here
+            let data = await this.azureStorage.getBlockBlob("samples", this.generateFileName(this.documentId)); // localStorage.getItem(this.markdownStorageKey);
+            console.log(data);
 
-        //replace the data here
-        let data = await this.azureStorage.getBlockBlob("samples", "sampletext.txt"); // localStorage.getItem(this.markdownStorageKey);
-        console.log(data);
+            let nodeData = await getNodeFromMarkdown(schema, data);
 
-        let nodeData = await getNodeFromMarkdown(schema, data);
-
-        return nodeData;
+            return nodeData;
+        }
+        catch (e) {
+            return undefined
+        }
     }
 
     public storeEditorStateAsMarkdown = async (schema: any, data: any) => {
@@ -75,12 +81,12 @@ export class StorageUtil implements IStorageUtil {
         console.log("changes for the storeEditorStateAsMarkdown", JSON.stringify(data));
         let _t = await convertToMarkdown(data);
         console.log("converted");
-
-        await this.azureStorage.putBlockBlob("samples", "sampletext.txt", _t)
-        await this.azureStorage.createSnapShotForBlob("samples", "sampletext.txt");
+        const file_name = this.generateFileName(this.documentId)
+        await this.azureStorage.putBlockBlob("samples", file_name, _t)
+        await this.azureStorage.createSnapShotForBlob("samples", file_name);
         // localStorage.setItem(this.markdownStorageKey, _t);
         console.log("///////// Markdown Data writing //////////////");
-        console.log(_t);
+        // console.log(_t);
     }
 
 
@@ -99,11 +105,15 @@ export class StorageUtil implements IStorageUtil {
     }
 
     public getSnapShotlist() {
-        return this.azureStorage.getSnapShotListForBlobName("samples", "sampletext.txt");
+        return this.azureStorage.getSnapShotListForBlobName("samples", this.generateFileName(this.documentId));
     }
 
     public getSnapShotContent(snapshot: string) {
-        return this.azureStorage.getSnapShotContent("samples", "sampletext.txt", snapshot);
+        return this.azureStorage.getSnapShotContent("samples", this.generateFileName(this.documentId), snapshot);
     }
 
+    public generateFileName(documentId: string) {
+        console.log(documentId)
+        return documentId + ".txt"
+    }
 }

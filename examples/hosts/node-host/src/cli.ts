@@ -19,16 +19,12 @@ export async function readlineAsync(input: readline.ReadLine, prompt: string): P
  */
 export async function launchCLI(fluidObject: IFluidObject) {
     const keyValue = fluidObject;
-    console.log("keyValue", keyValue);
+    //console.log("keyValue", keyValue);
     if (keyValue === undefined) {
         return;
     }
-    console.log("");
-    console.log("Begin entering options (ctrl+c to quit)");
-    console.log("Type '1' to insert a key and value");
-    console.log("Type '2' to get a value for a key");
-    console.log("Type '3' to display all key value pairs");
-    console.log("");
+    console.log("In the console");
+    return
 
     // const input = readline.createInterface(process.stdin, process.stdout);
 

@@ -41,7 +41,7 @@ async function fetchCore(loader: Loader, url: string) {
     }
 
     const fluidObject = response.value as IFluidObject;
-
+    console.log(fluidObject)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     launchCLI(fluidObject);
 }

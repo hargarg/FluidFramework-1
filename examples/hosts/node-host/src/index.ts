@@ -14,7 +14,11 @@ import * as jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import { NodeCodeLoader } from "./nodeCodeloader";
 import { fetchFluidObject, initializeChaincode } from "./utils";
-import { AzureBlobStorage } from "./storageAccount";
+// import { AzureBlobStorage } from "./storageAccount";
+import { runService } from "@fluidframework/server-services-utils";
+import { NodeLoaderResourcesFactory, NodeLoaderRunnerFactory } from "./runnerFactory";
+import * as path from "path";
+// import { DocumentLoader } from "./documentLoader";
 
 // Base service configuration.
 const ordererEndpoint = "https://alfred.frs.office-int.com";;
@@ -30,13 +34,17 @@ const installPath = "/tmp/fluid-objects";
 const timeoutMS = 60000;
 
 // Document id (randomly chosen if not specified)
-const docId = "sugarcurtain_catcher";
+const docId = "buttercupsinger_mark";
 
 // User information.
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const user = {
     id: "16d97a2b-b1e7-4ddf-a203-0d0ccf040b84",
 } as IUser;
+
+
+
+
 
 export async function start(): Promise<void> {
     // TODO: Create a url resolver for node environment.
@@ -55,7 +63,7 @@ export async function start(): Promise<void> {
             user,
         },
         tenantKey);
-
+    console.log(token);
     // Genearting Fluid urls.
     const encodedTenantId = encodeURIComponent(tenantId);
     const encodedDocId = encodeURIComponent(documentId);
@@ -74,7 +82,7 @@ export async function start(): Promise<void> {
         type: "fluid",
         url: documentUrl,
     };
-
+    console.log(resolved)
     const resolver = new ContainerUrlResolver(
         ordererEndpoint,
         hostToken,
@@ -116,13 +124,27 @@ export async function start(): Promise<void> {
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 
 
-export async function storageAccount() {
-    const azureStorage = new AzureBlobStorage("DefaultEndpointsProtocol=https;AccountName=prosemirror;AccountKey=5LkbRyZcII5Tq6r2sjCB95vNbFOswTlJ8ZvmN5HJtEmPusAG4e8SfpWit0npF25/bT9SLZKrKT1Xq/DC/GSRRg==;EndpointSuffix=core.windows.net")
-    const data = await azureStorage.getSnapShotListForBlobName("samples", "sampletext.txt");
+// export async function storageAccount() {
+//     const azureStorage = new AzureBlobStorage("DefaultEndpointsProtocol=https;AccountName=prosemirror;AccountKey=5LkbRyZcII5Tq6r2sjCB95vNbFOswTlJ8ZvmN5HJtEmPusAG4e8SfpWit0npF25/bT9SLZKrKT1Xq/DC/GSRRg==;EndpointSuffix=core.windows.net")
+//     const data = await azureStorage.getSnapShotListForBlobName("samples", "sampletext.txt");
 
-    console.log(data);
-    const snapshotdata = await azureStorage.getSnapShotContent("samples", "sampletext.txt", "2020-10-05T09:45:31.8038417Z")
-    console.log(snapshotdata);
-}
+//     console.log(data);
+//     const snapshotdata = await azureStorage.getSnapShotContent("samples", "sampletext.txt", "2020-10-05T09:45:31.8038417Z")
+//     console.log(snapshotdata);
+// }
 // storageAccount();
-start();
+// start();
+// const documentLoader = new DocumentLoader(
+//     "@fluid-example/prosemirror@0.28.0",
+//     "buttercupsinger_mark",
+//     "shadowkicker-watcher"
+// );
+// console.log(documentLoader)
+// documentLoader.loadDocument()
+
+runService(
+    new NodeLoaderResourcesFactory(),
+    new NodeLoaderRunnerFactory(),
+    "NodeLoader",
+    path.join(__dirname, "../config.json")
+)

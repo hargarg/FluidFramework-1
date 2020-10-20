@@ -1,0 +1,56 @@
+{
+    "logger": {
+        "colorize": true,
+        "morganFormat": "dev",
+        "json": false,
+        "level": "info",
+        "timestamp": true,
+        "label": "winston"
+    },
+    "kafka": {
+        "lib": {
+            "name": "kafka-node",
+            "endpoint": "zookeeper:2181"
+        }
+    },
+    "redis": {
+        "host": "localhost",
+        "port": 6379
+    },
+    "system": {
+        "topics": {
+            "send": "deltas"
+        }
+    },
+    "error": {
+        "track": false,
+        "endpoint": ""
+    },
+    "auth": {
+        "endpoint": "http://riddler:5000"
+    },
+    "worker": {
+        "ordererEndpoint": "https://alfred.frs.office-int.com",
+        "storageEndpoint": "https://historian.frs.office-int.com"
+    },
+    "tmz": {
+        "alfred": "http://alfred:3000",
+        "agentExchange": "agentExchange"
+    },
+    "nodeloader-agent": {
+        "queue": "noeLoaderQueue"
+    },
+    "rabbitmq": {
+        "connectionString": "amqp://localhost"
+    },
+    "tenant": {
+        "tenantId": "shadowkicker-watcher",
+        "tenantKey": "8a194e2ea505f2cb9bf71d976b27adeb",
+        "bearerSecret": "VBQyoGpEYrTn3XQPtXW3K8fFDd"
+    },
+    "rabbitmqsender": {
+        "queues": [
+            "noeLoaderQueue"
+        ]
+    }
+}

@@ -4,7 +4,7 @@
  */
 
 module.exports = {
-    "ignorePatterns": ["src/storageAccount.ts", "src/index.ts"],
+    "ignorePatterns": ["src/storageAccount.ts", "src/index.ts", "src/documentLoader.ts"],
     "extends": [
         "@fluidframework/eslint-config-fluid"
     ],
