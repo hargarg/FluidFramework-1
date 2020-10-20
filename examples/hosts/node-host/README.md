@@ -4,6 +4,9 @@
 
 This example demonstrates loading Fluid objects inside Node.js environment. To understand how Fluid loader works, read the [literate](../hosts-sample/README.md) loader example first.
 
+We are using the rabbitmq to queue the request for documents to initiate the nodecodeloader.
+We are currently loading the prosemirrorcomponent and whenever there are any changes for the data can be sent to the azure blob storage
+
 ## Difference with Literate Loader
 
 The primary difference is how Fluid object packages are being loaded. While the literate loader can 'script include' a file inside a browser environment, Node requires a different approach.
@@ -12,30 +15,24 @@ It uses 'npm install' to install the package directly in local file system. Once
 Note that if you are installing packages from a private registry, you need to create .npmrc file with auth tokens inside your installation directory first.
 
 ## Build steps
+npm run docker-build
 
-Replace the following parameters in [index.ts](./src/index.ts)
+Below command to start rabbitmq and redis
+npm run docker-start
 
-```
-const ordererEndpoint = <fluid_ordering_url>;
-const storageEndpoint = <fluid_storage_url>;
-const tenantId = <fluid_tenant_id>;
-const tenantKey = <fluid_tenant_key>;
-const bearerSecret = <fluid_host_secret>;
-
-// Code package details.
-const defaultPackage = "@fluid-example/key-value-cache@0.19.0-28557";
-const installPath = "/tmp/fluid-objects"; // Local filesystem path where package will be installed
-const timeoutMS = 60000; // Timeout for successful installation
-
-const docId = ""; // Document id (randomly chosen if not specified)
 ```
 
 Once parameters are set up, use the following commands for building and running:
 
 ```bash
 npm run build
-npm start
+npm run start
 ```
+
+To enable the nodecodeloader for a document Send a Post request to:
+http://localhost:3000/server/{tenantId}/{documentId}
+
+
 
 ## Interacting with the Fluid Objects
 
