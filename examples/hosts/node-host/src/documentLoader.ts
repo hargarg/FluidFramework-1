@@ -105,6 +105,7 @@ export class DocumentLoader {
                 .catch((error) => console.error("chaincode error", error));
         }
 
+        //   await PollAndCloseDocument(fluidDocument)
     }
 
 
