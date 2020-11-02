@@ -5,6 +5,7 @@
         "node_modules"
     ],
     "compilerOptions": {
+        "target": "es6",
         "rootDir": "./src",
         "outDir": "dist",
         "types": [

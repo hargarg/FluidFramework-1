@@ -79,10 +79,11 @@ export class StorageUtil implements IStorageUtil {
     public storeEditorStateAsMarkdown = async (schema: any, data: any) => {
         //get the editor state and convert into markdown
         console.log("changes for the storeEditorStateAsMarkdown", JSON.stringify(data));
-        let _t = await convertToMarkdown(data);
+        console.log(data)
+       // let _t = await convertToMarkdown(data);
         console.log("converted");
         const file_name = this.generateFileName(this.documentId)
-        await this.azureStorage.putBlockBlob("samples", file_name, _t)
+        await this.azureStorage.putBlockBlob("samples", file_name, data)
         await this.azureStorage.createSnapShotForBlob("samples", file_name);
         // localStorage.setItem(this.markdownStorageKey, _t);
         console.log("///////// Markdown Data writing //////////////");

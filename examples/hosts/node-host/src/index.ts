@@ -14,6 +14,7 @@ import * as jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import { NodeCodeLoader } from "./nodeCodeloader";
 import { fetchFluidObject, initializeChaincode } from "./utils";
+// import * as path from 'path';
 // import { AzureBlobStorage } from "./storageAccount";
 import { runService } from "@fluidframework/server-services-utils";
 import { NodeLoaderResourcesFactory, NodeLoaderRunnerFactory } from "./runnerFactory";
@@ -30,11 +31,13 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Code package details.
 const defaultPackage = "@fluid-example/prosemirror@0.28.0";
+// const packagepath = path.dirname(__filename);
+
 const installPath = "/tmp/fluid-objects";
 const timeoutMS = 60000;
 
 // Document id (randomly chosen if not specified)
-const docId = "buttercupsinger_mark";
+const docId = "buttercupsinger_maxrkaaaaa";
 
 // User information.
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

@@ -22,8 +22,10 @@ import { nodeTypeKey } from "./fluidBridge";
 import { FluidCollabManager, IProvideRichTextEditor } from "./fluidCollabManager";
 import { ProseMirrorView } from "./prosemirrorView";
 import { IStorageUtil, StorageUtil } from './storage';
-import { getNodeFromMarkdown } from './utils';
+import { convertToMarkdown, getNodeFromMarkdown } from './utils';
 import { BlobItem } from "@azure/storage-blob";
+import { ISyncMessageHandler, TestComponent, SyncBridge, SyncMessage, SyncMessageHandlerResult, SyncMessageType } from "syncbridge"
+import { AzureBlobConnector } from "./connector/AzureConnector";
 
 
 function createTreeMarkerOps(
@@ -83,7 +85,7 @@ export function debounceUtil(functionToBeExecuted, debounceInterval) {
 /**
  * ProseMirror builds a Fluid collaborative text editor on top of the open source text editor ProseMirror.
  */
-export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideRichTextEditor {
+export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideRichTextEditor, ISyncMessageHandler {
 
     public get IFluidHTMLView() { return this; }
     public get IRichTextEditor() { return this.collabManager; }
@@ -93,6 +95,9 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
     private view: ProseMirrorView;
     public StorageUtilModule: IStorageUtil;
     public snapshotList: BlobItem[] = [];
+    private readonly sbClientKey: string = 'sbClientKey';
+    private syncBridge!: SyncBridge;
+  
     // private readonly debouncingInterval: number = 1000;
 
 
@@ -105,24 +110,43 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
             value: this,
         };
     }
+    public get ISyncMessageHandler() {
+        return this;
+      }
+
+    public handleSyncMessage = async (syncMessage: SyncMessage): Promise<SyncMessageHandlerResult | undefined> => {
+          return {success:true}
+      }
+
 
     protected async initializingFirstTime() {
         const text = SharedString.create(this.runtime);
+        // const testComponent = await TestComponent.getFactory().createChildInstance(
+        //     this.context
+        // );
         const ops = createTreeMarkerOps("prosemirror", 0, 1, "paragraph");
         text.groupOperation({ ops, type: MergeTreeDeltaType.GROUP });
         text.insertText(1, "Hello, world!");
 
         this.root.set("text", text.handle);
+       // this.root.set("testcompo", testComponent.IFluidHandle)
+
+        const azureConnector = await AzureBlobConnector.getFactory().createChildInstance(this.context)
+        const syncBridge = await SyncBridge.getFactory().createChildInstance(this.context, { connectorHandle: azureConnector.handle });
+        this.root.set(this.sbClientKey, syncBridge.handle);
+
     }
 
     protected async hasInitialized() {
 
 
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
-
+        // console.log(await this.root.get("testcompo").get());
         this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
-
+        this.syncBridge = await this.root.get(this.sbClientKey).get();''
         let schema = await this.collabManager.getSchema();
+        const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
+        await client.registerSyncMessageHandler(this);
         // this.StorageUtilModule = new StorageUtil(); //TO Be removed
         if (!isWebClient()) {
             this.StorageUtilModule = new StorageUtil(this.context.documentId);
@@ -156,8 +180,8 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
             if (!isWebClient()) {
                 // let debouncedFunction = debounceUtil(() => { this.StorageUtilModule.storeDeltaChangesOfEditor(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc) }, this.debouncingInterval);
                 // debouncedFunction();
-
-                this.StorageUtilModule.storeEditorStateAsMarkdown(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc);
+                this.submitUpdateStore();
+              // this.StorageUtilModule.storeEditorStateAsMarkdown(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc);
             }
             console.log("something changed ", changed);
         });
@@ -191,13 +215,33 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         };
         reader.readAsText(file);
     }
+
+    public async submitUpdateStore(){
+        const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
+        const data = this.collabManager.getCurrentState()?.doc
+        let _t = await convertToMarkdown(data);
+        console.log("_____________t______",_t);
+        const UPDATE_STORE_DATA = {
+          opCode: 'UPDATE_STORE_DATA',
+          type: SyncMessageType.SyncOperation,
+          payload: {data:_t }
+        } as SyncMessage;
+        client.submit(UPDATE_STORE_DATA);
+    }
 }
+
+
 
 export const ProseMirrorFactory = new DataObjectFactory(
     ProseMirror.Name,
     ProseMirror,
     [SharedString.getFactory()],
     {},
+    [
+        [SyncBridge.name, import("syncbridge").then((m) => m.SyncBridge.getFactory())],
+        [TestComponent.name, import("syncbridge").then((m) => m.TestComponent.getFactory())],
+        [AzureBlobConnector.name, import("./connector/AzureConnector").then((m) => m.AzureBlobConnector.getFactory())]
+    ]
 );
 
 const isWebClient = () => {
