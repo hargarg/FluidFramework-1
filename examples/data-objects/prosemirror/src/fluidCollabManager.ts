@@ -60,6 +60,7 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
     private readonly schema: Schema;
     private state: EditorState;
     private editorView: EditorView;
+    private tooltip: HTMLDivElement;
 
     constructor(private readonly text: SharedString, private readonly loader: ILoader) {
         super();
@@ -72,6 +73,17 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
                     return null;
                 },
             },
+            view : (editorView) => {
+                this.tooltip = document.createElement("div")
+                this.tooltip.className = "tooltip"
+                editorView.dom.parentNode.appendChild(this.tooltip)
+                this.updateSelection(editorView, null);
+
+                return {
+                    update: (editorView: EditorView, prevState: EditorState) => {this.updateSelection(editorView, prevState)},
+                    destroy: () => {this.destroySelection()}
+                }
+            }
         });
 
 
@@ -286,6 +298,43 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
         this.apply(tr);
     }
 
+    public updateSelection(view: EditorView, lastState: EditorState) {
+        let state = view.state
+        // Don't do anything if the document/selection didn't change
+        if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection))
+            return
+
+        // Hide the tooltip if the selection is empty
+        if (state.selection.empty) {
+            this.tooltip.style.display = "none"
+            return
+        }
+        let {from, to} = state.selection
+
+        const proseMirrorNode = state.doc.cut(from, to).firstChild?.content.size > 0 ? state.doc.cut(from, to).firstChild : state.doc.cut(from, to).lastChild;
+
+        const textContent = proseMirrorNode.content.firstChild?.text?.toString();
+
+        this.emit("selection", {textContent, cb: (content: string) => {this.updateTooltipContent(content, view, from, to)}})
+    }
+
+    public updateTooltipContent(tooltipContent: string, view: EditorView, from: number, to: number) {
+        this.tooltip.style.display = ""
+        // These are in screen coordinates
+        let start = view.coordsAtPos(from), end = view.coordsAtPos(to)
+        // The box in which the tooltip is positioned, to use as base
+        let box = this.tooltip.offsetParent.getBoundingClientRect()
+        // Find a center-ish x position from the selection endpoints (when
+        // crossing lines, end may be more to the left)
+        let left = Math.max((start.left + end.left) / 2, start.left + 3)
+        this.tooltip.style.left = (left - box.left) + "px"
+        this.tooltip.style.bottom = (box.bottom - start.top) + "px"
+
+        this.tooltip.textContent = tooltipContent;
+    }
+
+    public destroySelection() { this.tooltip.remove(); }
+
     public setupEditor(textArea: HTMLDivElement) {
         /* eslint-disable @typescript-eslint/no-require-imports,
         import/no-internal-modules, import/no-unassigned-import */
@@ -303,7 +352,7 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
                 nodeViews: {
                     fluid: (node, view, getPos) => new ComponentView(node, view, getPos, this.loader),
                     footnote: (node, view, getPos) => new FootnoteView(node, view, getPos, this.loader),
-                },
+                }
             });
 
         this.editorView = editorView;
