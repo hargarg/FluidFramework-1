@@ -164,7 +164,8 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         this.hasSnapshotChanged();
         this.collabManager?.on("selection", ({textContent, cb}) => {
             console.log(textContent);
-            cb(textContent);
+            const data = [{heading: "Name", data: "abc"},{heading: "Url", data: "abc.com"}];
+            cb(data);
         })
     }
 

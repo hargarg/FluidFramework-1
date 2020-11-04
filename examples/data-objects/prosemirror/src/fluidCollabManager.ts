@@ -315,10 +315,10 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
 
         const textContent = proseMirrorNode.content.firstChild?.text?.toString();
 
-        this.emit("selection", {textContent, cb: (content: string) => {this.updateTooltipContent(content, view, from, to)}})
+        this.emit("selection", {textContent, cb: (content: Array<any>) => {this.updateTooltipContent(content, view, from, to)}})
     }
 
-    public updateTooltipContent(tooltipContent: string, view: EditorView, from: number, to: number) {
+    public updateTooltipContent(content: Array<any>, view: EditorView, from: number, to: number) {
         this.tooltip.style.display = ""
         // These are in screen coordinates
         let start = view.coordsAtPos(from), end = view.coordsAtPos(to)
@@ -330,7 +330,12 @@ export class FluidCollabManager extends EventEmitter implements IRichTextEditor 
         this.tooltip.style.left = (left - box.left) + "px"
         this.tooltip.style.bottom = (box.bottom - start.top) + "px"
 
-        this.tooltip.textContent = tooltipContent;
+        let tooltipContent: string = ``;
+        content.forEach(element => {
+            tooltipContent += `<div><b>${element.heading}</b> : ${element.data}</div>`;
+        });
+
+        this.tooltip.innerHTML = tooltipContent;
     }
 
     public destroySelection() { this.tooltip.remove(); }
