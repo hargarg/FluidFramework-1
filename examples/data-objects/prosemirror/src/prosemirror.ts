@@ -26,6 +26,7 @@ import { convertToMarkdown, getNodeFromMarkdown } from './utils';
 import { BlobItem } from "@azure/storage-blob";
 import { ISyncMessageHandler, TestComponent, SyncBridge, SyncMessage, SyncMessageHandlerResult, SyncMessageType } from "syncbridge"
 import { AzureCognitiveConnector } from "./connector/AzureCognitiveConnector";
+import { SharedMap } from "../../../../packages/dds/sequence/node_modules/@fluidframework/map/dist";
 
 
 function createTreeMarkerOps(
@@ -97,7 +98,8 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
     public snapshotList: BlobItem[] = [];
     private readonly sbClientKey: string = 'sbClientKey';
     private syncBridge!: SyncBridge;
-
+   
+    private cognitiveDataMap:SharedMap;
     // private readonly debouncingInterval: number = 1000;
 
 
@@ -116,6 +118,11 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 
     public handleSyncMessage = async (syncMessage: SyncMessage): Promise<SyncMessageHandlerResult | undefined> => {
         console.log("getRecognizedService",syncMessage)
+        if(syncMessage.opCode==="RETURN_DATA")
+
+        this.cognitiveDataMap.set(syncMessage.payload.data.textSearch, syncMessage.payload.data.searchResult);
+
+        
           return {success:true}
       }
 
@@ -136,6 +143,9 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         const syncBridge = await SyncBridge.getFactory().createChildInstance(this.context, { connectorHandle: azureConnector.handle });
         this.root.set(this.sbClientKey, syncBridge.handle);
 
+        const cognitiveData = SharedMap.create(this.runtime);
+        this.root.set("cognitive", cognitiveData.handle);
+
     }
 
     protected async hasInitialized() {
@@ -144,7 +154,8 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
         // console.log(await this.root.get("testcompo").get());
         this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
-        this.syncBridge = await this.root.get(this.sbClientKey).get();''
+        this.syncBridge = await this.root.get(this.sbClientKey).get();
+        this.cognitiveDataMap = await this.root.get("cognitive").get();
         let schema = await this.collabManager.getSchema();
         const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
         await client.registerSyncMessageHandler(this);
@@ -163,29 +174,29 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 
         this.hasValueChanged();
         this.hasSnapshotChanged();
-        this.collabManager?.on("selection", ({textContent, cb}) => {
+        this.collabManager?.on("selection", async ({textContent, cb}) => {
+            const trimmedtext = textContent.trim()
+            await this.getRecognizedService(trimmedtext);
+            await this.cognitiveDataMap.wait(trimmedtext)
             console.log(textContent);
-            cb(textContent);
+           cb(JSON.stringify(this.cognitiveDataMap.get(trimmedtext)));
         })
     }
 
+    // ek local map 
     public hasSnapshotChanged() {
         this.on("snapshotTaken", (snapshotList) => {
             this.snapshotList = snapshotList;
             this.emit("snapshotAdded", this.snapshotList);
         })
     }
-
     public hasValueChanged() {
         this.collabManager?.on("valueChanged", (changed) => {
             this.emit("valueChanged")
-            // Here we can set data to original file
-            // this.StorageUtilModule.storeData(this.collabManager.getCurrentState().toJSON());
-
             if (!isWebClient()) {
                 // let debouncedFunction = debounceUtil(() => { this.StorageUtilModule.storeDeltaChangesOfEditor(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc) }, this.debouncingInterval);
                 // debouncedFunction();
-                this.getRecognizedService("seattle")
+                
                 //  this.submitUpdateStore();
               // this.StorageUtilModule.storeEditorStateAsMarkdown(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc);
             }
@@ -254,7 +265,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 export const ProseMirrorFactory = new DataObjectFactory(
     ProseMirror.Name,
     ProseMirror,
-    [SharedString.getFactory()],
+    [SharedString.getFactory(), SharedMap.getFactory()],
     {},
     [
         [SyncBridge.name, import("syncbridge").then((m) => m.SyncBridge.getFactory())],

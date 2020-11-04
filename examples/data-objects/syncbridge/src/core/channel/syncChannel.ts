@@ -38,6 +38,7 @@ export class SyncChannel extends EventEmitter implements ISyncChannel, ISyncChan
   }
 
   protected onAddMessage = (): void => {
+    console.log("event emitted for addition");
     this.emit(channelChanged, { opType: SyncChannelOpType.MessageAdded, direction: this.direction });
   };
 
@@ -50,6 +51,7 @@ export class SyncChannel extends EventEmitter implements ISyncChannel, ISyncChan
   }
 
   public submit = async (message: SyncMessage) => {
+    console.log("added to primary queue", message)
     await this.primaryQueue.add(message);
   };
 
@@ -79,6 +81,7 @@ export class SyncChannel extends EventEmitter implements ISyncChannel, ISyncChan
   public acquire = async (): Promise<boolean> => {
     return this.primaryQueue.acquire(
       (message): Promise<ConsensusResult> => {
+        console.log("mssage acquiring :", message)
         let promise = new Deferred<ConsensusResult>();
         if (this.acquireCallback) {
           this.acquireCallback(message).then((result) => {

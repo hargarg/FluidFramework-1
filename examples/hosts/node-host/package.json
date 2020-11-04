@@ -61,7 +61,8 @@
     "socket.io": "^2.2.0",
     "split": "^1.0.0",
     "winston": "^3.1.0",
-    "syncbridge": "^1.0.0"
+    "syncbridge": "^1.0.0",
+    "@azure/ai-text-analytics": "5.1.0-beta.1"
   },
   "devDependencies": {
     "@fluidframework/build-common": "^0.19.2",

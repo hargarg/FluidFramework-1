@@ -67,7 +67,7 @@ export class DocumentLoader {
             type: "fluid",
             url: documentUrl,
         };
-        console.log(resolved)
+        
         const resolver = new ContainerUrlResolver(
             endpoint.ordererEndpoint,
             hostToken,
