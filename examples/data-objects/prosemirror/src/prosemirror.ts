@@ -97,7 +97,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
     public snapshotList: BlobItem[] = [];
     private readonly sbClientKey: string = 'sbClientKey';
     private syncBridge!: SyncBridge;
-  
+
     // private readonly debouncingInterval: number = 1000;
 
 
@@ -163,6 +163,10 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 
         this.hasValueChanged();
         this.hasSnapshotChanged();
+        this.collabManager?.on("selection", ({textContent, cb}) => {
+            console.log(textContent);
+            cb(textContent);
+        })
     }
 
     public hasSnapshotChanged() {
