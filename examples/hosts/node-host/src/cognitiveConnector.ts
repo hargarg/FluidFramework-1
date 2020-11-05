@@ -9,16 +9,13 @@ async function sentimentAnalysis(client){
     const sentimentInput = [
         "I had the best day of my life in USA. I wish you were there with me in seattle. Friends on netflix is good"
     ];
-    const sentimentResult = await client.recognizeLinkedEntities(sentimentInput);
-
+    const sentimentResult = await client.recognizeEntities(sentimentInput);
+    console.log(sentimentResult)
     sentimentResult.forEach(document => {
         document.entities.forEach(entity => {
-            const data = {name:entity.name,url:entity.url }
-            entity.matches.forEach(match => {
-                console.log(match.text, {recognizedLinkedEntities:data})
-            })
-        })
-
-    })
+            
+            console.log(JSON.stringify(entity))
+        });
+    });
 }
 sentimentAnalysis(textAnalyticsClient)

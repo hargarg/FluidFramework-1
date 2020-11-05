@@ -119,7 +119,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
     public handleSyncMessage = async (syncMessage: SyncMessage): Promise<SyncMessageHandlerResult | undefined> => {
         console.log("getRecognizedService",syncMessage)
         if(syncMessage.opCode==="RETURN_DATA")
-
+        
         this.cognitiveDataMap.set(syncMessage.payload.data.textSearch, syncMessage.payload.data.searchResult);
 
         
@@ -179,7 +179,23 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
             await this.getRecognizedService(trimmedtext);
             await this.cognitiveDataMap.wait(trimmedtext)
             console.log(textContent);
-           cb(JSON.stringify(this.cognitiveDataMap.get(trimmedtext)));
+            const final_arr = []
+         //  cb(JSON.stringify(this.cognitiveDataMap.get(trimmedtext)));
+         if(this.cognitiveDataMap.get(trimmedtext)){
+             const val = this.cognitiveDataMap.get(trimmedtext);
+            if(val.recognizedLinkedEntities){
+                final_arr.push({name:val.recognizedLinkedEntities.name})
+                final_arr.push({url:val.recognizedLinkedEntities.url})
+
+            };
+            if(val.recognizedEntities){
+            final_arr.push({category:val.recognizedEntities.category})
+            final_arr.push({subCategory:val.recognizedEntities.subCategory})
+
+        }
+         }
+    
+         cb(final_arr)
         })
     }
 
