@@ -1,0 +1,11 @@
+{
+    "fluid": {
+        "webpack": {
+            "fluidHost": "https://www.frs.office-int.com",
+            "tenantId": "deeppuma-diver",
+            "tenantSecret": "f0aee98b8d5f7107341ba5550975dc3",
+            "bearerSecret": "VBQyoGpEYrTn3XQPtXW3K8fFDd",
+            "npm": "npm.com"
+        }
+    }
+}

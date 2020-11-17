@@ -143,7 +143,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
         // console.log(await this.root.get("testcompo").get());
         this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
-        this.syncBridge = await this.root.get(this.sbClientKey).get();''
+        this.syncBridge = await this.root.get(this.sbClientKey).get();
         let schema = await this.collabManager.getSchema();
         const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
         await client.registerSyncMessageHandler(this);
@@ -162,6 +162,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 
         this.hasValueChanged();
         this.hasSnapshotChanged();
+        console.log("IN THE INITIALIZED>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>PROSEMIRROR FHL")
     }
 
     public hasSnapshotChanged() {
@@ -186,7 +187,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
             console.log("something changed ", changed);
         });
     }
-
+                                    
     public render(elm: HTMLElement): void {
         if (isWebClient()) {
             if (!this.view) {

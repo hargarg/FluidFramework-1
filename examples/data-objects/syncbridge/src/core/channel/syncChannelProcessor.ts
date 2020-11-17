@@ -65,7 +65,12 @@ export class SyncChannelProcessor {
       }, direction => ${channelEvent.direction}`
     );
     // TODO: Better handling later. Also, think about `scheduling`.
+    if(!isWebClient()){
     const willAcquire = await this.channelHandle.acquire();
     console.log(`SyncDirection: ${this.channelHandle.getSyncDirection()} Processor will acquire: ${willAcquire}`);
+    }
   };
 }
+const isWebClient = () => {
+  return typeof window !== "undefined" && typeof window.document !== "undefined";
+};
