@@ -29,6 +29,7 @@
   "dependencies": {
     "@fluid-example/key-value-cache": "^0.28.0",
     "@fluid-example/prosemirror": "^0.28.0",
+    "@fluid-example/prosemirror_blob": "^0.28.0",
     "@fluidframework/container-definitions": "^0.28.0",
     "@fluidframework/container-loader": "^0.28.0",
     "@fluidframework/core-interfaces": "^0.28.0",

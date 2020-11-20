@@ -11,7 +11,7 @@ import { LeaderManager } from './leaderSelection';
 import { LeaderSelection } from './leaderSelection/Leader';
 import { ISyncRuntime, SyncRuntime } from './core/syncRuntime';
 import { ConsensusQueue } from '@fluidframework/ordered-collection';
-import { SyncRunTimeInitializer } from './core/syncRunTimeInitializer';
+// import { SyncRunTimeInitializer } from './core/syncRunTimeInitializer';
 import { Deferred } from './deferred';
 
 export const SyncBridgeType = "SyncBridge";
@@ -23,7 +23,7 @@ export class SyncBridge extends DataObject implements ISyncBridgeClientProvider,
   private initializedSyncRuntime = false;
 
   // Eagerly initializing in hope that singleton instance would be created eagerly.
-  private readonly executor = SyncRunTimeInitializer.Instance;
+ // private readonly executor = SyncRunTimeInitializer.Instance;
   // Return promise of SyncBridgeClient as SyncRuntime initializes asynchronously.
   private readonly clientPromise = new Deferred<ISyncBridgeClient>();
 
@@ -52,6 +52,7 @@ export class SyncBridge extends DataObject implements ISyncBridgeClientProvider,
     this.connector = await this.root.get<IFluidHandle<IFluidObject>>(this.connectorKey).get();
     // const connectorKey = await this.root.get<string>(this.connectorKey);
     // console.log(`SyncBridge hasInitialized connectorKey: ${connectorKey}`);
+   // console.log("this.connector ",this.connector)
     if (!this.connector) {
       throw new Error('Connector is undefined');
     }
@@ -63,17 +64,21 @@ export class SyncBridge extends DataObject implements ISyncBridgeClientProvider,
        * Initialize sync-runtime and setup component and connector connection.
        * sync-runtime is the root of sync core object-graph.
        */
-      this.executor.execute({
-        code: 'InitializeSyncRunTime',
-        op: () => {
-          if (!this.initializedSyncRuntime && !this.syncRuntime) {
-            this.initializedSyncRuntime = true;
-            const syncRuntime = new SyncRuntime(this.root, this.runtime);
-            syncRuntime.initialize({}, this.connector).then(() => {});
-            this.setSyncRuntime(syncRuntime);
-          }
-        }
-      });
+
+      if (!this.initializedSyncRuntime && !this.syncRuntime) {
+        this.initializedSyncRuntime = true;
+        const syncRuntime = new SyncRuntime(this.root, this.runtime);
+        syncRuntime.initialize({}, this.connector).then(() => {});
+        this.setSyncRuntime(syncRuntime);
+      }
+      // console.log("<<<<<<<<<<<<<<<<<<<<<this.executor>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",this.executor)
+      // this.executor.execute({
+      //   code: 'InitializeSyncRunTime',
+      //   op: () => {
+      //     console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Values>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",this.initializedSyncRuntime,this.syncRuntime )
+         
+      //   }
+      // });
     // }
   }
 

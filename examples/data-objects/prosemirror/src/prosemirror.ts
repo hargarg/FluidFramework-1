@@ -145,6 +145,7 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
 
         const cognitiveData = SharedMap.create(this.runtime);
         this.root.set("cognitive", cognitiveData.handle);
+        console.log("prosemirror initializing>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
     }
 
@@ -197,6 +198,8 @@ export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideR
     
          cb(final_arr)
         })
+        console.log("prosemirror initializeddddddd<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<>>>>>>>>>>")
+
     }
 
     // ek local map 

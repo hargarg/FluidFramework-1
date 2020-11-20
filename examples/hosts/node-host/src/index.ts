@@ -22,11 +22,11 @@ import * as path from "path";
 // import { DocumentLoader } from "./documentLoader";
 
 // Base service configuration.
-const ordererEndpoint = "https://alfred.frs.office-int.com";;
-const storageEndpoint = "https://historian.frs.office-int.com";
-const tenantId = "shadowkicker-watcher";
-const tenantKey = "8a194e2ea505f2cb9bf71d976b27adeb";
-const bearerSecret = "VBQyoGpEYrTn3XQPtXW3K8fFDd";
+const ordererEndpoint = "";;
+const storageEndpoint = "";
+const tenantId = "";
+const tenantKey = "";
+const bearerSecret = "";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Code package details.
@@ -42,7 +42,7 @@ const docId = "buttercupsinger_maxrkaaaaa";
 // User information.
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const user = {
-    id: "16d97a2b-b1e7-4ddf-a203-0d0ccf040b84",
+    id: "",
 } as IUser;
 
 
@@ -127,14 +127,6 @@ export async function start(): Promise<void> {
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 
 
-// export async function storageAccount() {
-//     const azureStorage = new AzureBlobStorage("DefaultEndpointsProtocol=https;AccountName=prosemirror;AccountKey=5LkbRyZcII5Tq6r2sjCB95vNbFOswTlJ8ZvmN5HJtEmPusAG4e8SfpWit0npF25/bT9SLZKrKT1Xq/DC/GSRRg==;EndpointSuffix=core.windows.net")
-//     const data = await azureStorage.getSnapShotListForBlobName("samples", "sampletext.txt");
-
-//     console.log(data);
-//     const snapshotdata = await azureStorage.getSnapShotContent("samples", "sampletext.txt", "2020-10-05T09:45:31.8038417Z")
-//     console.log(snapshotdata);
-// }
 // storageAccount();
 // start();
 // const documentLoader = new DocumentLoader(

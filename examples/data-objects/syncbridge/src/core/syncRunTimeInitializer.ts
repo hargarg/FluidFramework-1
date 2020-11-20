@@ -36,6 +36,7 @@ export class SyncRunTimeInitializer implements ISyncRunTimeInitializer {
 
   execute = (action: Action): void => {
     this.actions.push(action);
+   
   };
 
   private process = (): void => {

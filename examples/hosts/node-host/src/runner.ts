@@ -57,8 +57,10 @@ export class NodeLoaderRunner implements utils.IRunner {
             const type = message;
             winston.info("messsssssssssssssssss", type)
             const messageContent = message.content
+            const packageId = messageContent.pkgNo==2?"@fluid-example/prosemirror@0.28.0":"@fluid-example/prosemirror_blob@0.28.0"
+            console.log("----------------------------packageId-------------------------", packageId)
             const documentLoader = new DocumentLoader(
-                "@fluid-example/prosemirror@0.28.0",
+                packageId,
                 messageContent.documentId,
                 messageContent.tenantId
             );

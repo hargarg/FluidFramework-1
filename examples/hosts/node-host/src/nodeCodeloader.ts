@@ -26,13 +26,15 @@ export class NodeCodeLoader {
 
     public async load<T>(pkg: any): Promise<T> {
         let packageName = "";
-        console.log(packageName);
+        //console.log(packageName,"---------------------------------------------------------------", pkg);
         if (typeof pkg.package === "string") {
             packageName = pkg.package;
         } else {
             packageName = `${pkg.package.name}@${pkg.package.version}`;
         }
-        const codeEntrypoint = "@fluid-example/prosemirror"; // await this.installOrWaitForPackages(packageName);
+        
+        const codeEntrypoint = packageName.substring(0, packageName.lastIndexOf("@"));; // await this.installOrWaitForPackages(packageName);
+        console.log("codeEntrypoint.....................................................",codeEntrypoint);
         const entry = import(codeEntrypoint);
         return entry;
     }

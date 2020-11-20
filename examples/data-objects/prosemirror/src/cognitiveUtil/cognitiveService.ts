@@ -1,6 +1,6 @@
 import {TextAnalyticsClient, AzureKeyCredential} from "@azure/ai-text-analytics"
 
-const key = '079d7fa757fd475fa1d7ef6f77bd876a';
+const key = 'enter key';
 const endpoint = 'https://fluid-entity.cognitiveservices.azure.com/';
 // const textAnalyticsClient = new TextAnalyticsClient(endpoint,  new AzureKeyCredential(key));
 

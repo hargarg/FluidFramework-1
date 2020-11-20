@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { DocumentLoader } from "./../documentLoader";
 import * as services from "@fluidframework/server-services";
 import { Provider } from "nconf";
 import * as redis from "redis";
@@ -31,14 +30,9 @@ export function create(config: Provider): Router {
     messagesender.initialize()
 
 
-    router.post("/server/:tenantId/:documentId", (request, response, next) => {
-        const documentLoader = new DocumentLoader(
-            "@fluid-example/prosemirror@0.28.0",
-            request.params.documentId,
-            request.params.tenantId
-        );
-        console.log(documentLoader)
-        messagesender.sendTask(queueName, { type: "task:nodestart", content: { documentId: request.params.documentId, tenantId: request.params.tenantId } })
+    router.post("/server/:tenantId/:documentId/:pkgNo", (request, response, next) => {
+  
+        messagesender.sendTask(queueName, { type: "task:nodestart", content: { documentId: request.params.documentId, tenantId: request.params.tenantId, pkgNo:request.params.pkgNo } })
         // documentLoader.loadDocument()
         response.status(200).json("completed")
     });
