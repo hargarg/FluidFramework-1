@@ -49,9 +49,9 @@ export class StorageUtil implements IStorageUtil {
     public storageAccount(webView?: boolean) {
         let sasUrl = undefined;
         if (webView) {
-            sasUrl = "https://syncbridge.blob.core.windows.net/?sv=2019-12-12&ss=b&srt=sco&sp=rwdlacx&se=2021-01-01T13:38:22Z&st=2020-10-07T05:38:22Z&spr=https,http&sig=0ytibsrUBKLlPhFCiZG07xuNhOei4pCVsBVC5moF7ZA%3D"
+            sasUrl = ""
         }
-        const azureStorage = new AzureBlobStorage("DefaultEndpointsProtocol=https;AccountName=syncbridge;AccountKey=nSaj5L0vWwWWsl3/7EvScra7LrehlTC/2zDWwY3iJ8ebyGRnNUfKDXo0RtMqAb19oQuJf/7s2AseD7AvUzs40Q==;EndpointSuffix=core.windows.net", sasUrl)
+        const azureStorage = new AzureBlobStorage("", sasUrl)
         //const data = await azureStorage.getBlockBlob("samples", "sampletext.txt");
         //console.log(data);
         return azureStorage;
