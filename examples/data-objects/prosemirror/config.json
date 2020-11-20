@@ -1,0 +1,11 @@
+{
+    "fluid": {
+        "webpack": {
+            "fluidHost": "https://www.frs.office-int.com",
+            "tenantId": "shadowkicker-watcher",
+            "tenantSecret": "8a194e2ea505f2cb9bf71d976b27adeb",
+            "bearerSecret": "VBQyoGpEYrTn3XQPtXW3K8fFDd",
+            "npm": "npm.com"
+        }
+    }
+}
