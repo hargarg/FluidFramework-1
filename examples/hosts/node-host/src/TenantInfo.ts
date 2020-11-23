@@ -11,9 +11,9 @@ export interface IEndpoints {
 
 export function getSampleTenantInfo() {
     const sampleTenant: ITenantInfo = {
-        tenantId: "shadowkicker-watcher",
-        tenantKey: "8a194e2ea505f2cb9bf71d976b27adeb",
-        bearerSecret: "VBQyoGpEYrTn3XQPtXW3K8fFDd"
+        tenantId: "",
+        tenantKey: "",
+        bearerSecret: ""
 
     }
     return sampleTenant
@@ -22,9 +22,9 @@ export function getSampleTenantInfo() {
 export function getTenantInfo(tenantId) {
     console.log(tenantId)
     const sampleTenant: ITenantInfo = {
-        tenantId: "shadowkicker-watcher",
-        tenantKey: "8a194e2ea505f2cb9bf71d976b27adeb",
-        bearerSecret: "VBQyoGpEYrTn3XQPtXW3K8fFDd"
+        tenantId: "",
+        tenantKey: "",
+        bearerSecret: ""
 
     }
     return sampleTenant
