@@ -14,28 +14,40 @@ import * as jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import { NodeCodeLoader } from "./nodeCodeloader";
 import { fetchFluidObject, initializeChaincode } from "./utils";
+// import * as path from 'path';
+// import { AzureBlobStorage } from "./storageAccount";
+import { runService } from "@fluidframework/server-services-utils";
+import { NodeLoaderResourcesFactory, NodeLoaderRunnerFactory } from "./runnerFactory";
+import * as path from "path";
+// import { DocumentLoader } from "./documentLoader";
 
 // Base service configuration.
-const ordererEndpoint = "";
+const ordererEndpoint = "";;
 const storageEndpoint = "";
 const tenantId = "";
 const tenantKey = "";
 const bearerSecret = "";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Code package details.
-const defaultPackage = "@fluid-example/key-value-cache@0.19.0-28557";
+const defaultPackage = "@fluid-example/prosemirror@0.28.0";
+// const packagepath = path.dirname(__filename);
+
 const installPath = "/tmp/fluid-objects";
 const timeoutMS = 60000;
 
 // Document id (randomly chosen if not specified)
-const docId = "";
+const docId = "buttercupsinger_maxrkaaaaa";
 
 // User information.
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const user = {
-    id: "node-user",         // Required value
-    name: "Node User",       // Optional value that we included
+    id: "",
 } as IUser;
+
+
+
+
 
 export async function start(): Promise<void> {
     // TODO: Create a url resolver for node environment.
@@ -54,7 +66,7 @@ export async function start(): Promise<void> {
             user,
         },
         tenantKey);
-
+    console.log(token);
     // Genearting Fluid urls.
     const encodedTenantId = encodeURIComponent(tenantId);
     const encodedDocId = encodeURIComponent(documentId);
@@ -73,7 +85,7 @@ export async function start(): Promise<void> {
         type: "fluid",
         url: documentUrl,
     };
-
+    console.log(resolved)
     const resolver = new ContainerUrlResolver(
         ordererEndpoint,
         hostToken,
@@ -113,4 +125,21 @@ export async function start(): Promise<void> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-start();
+
+
+// storageAccount();
+// start();
+// const documentLoader = new DocumentLoader(
+//     "@fluid-example/prosemirror@0.28.0",
+//     "buttercupsinger_mark",
+//     "shadowkicker-watcher"
+// );
+// console.log(documentLoader)
+// documentLoader.loadDocument()
+
+runService(
+    new NodeLoaderResourcesFactory(),
+    new NodeLoaderRunnerFactory(),
+    "NodeLoader",
+    path.join(__dirname, "../config.json")
+)

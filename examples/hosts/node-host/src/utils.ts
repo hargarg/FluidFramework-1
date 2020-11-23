@@ -7,6 +7,7 @@ import { IFluidObject } from "@fluidframework/core-interfaces";
 import { IFluidCodeDetails } from "@fluidframework/container-definitions";
 import { Container, Loader } from "@fluidframework/container-loader";
 import { launchCLI } from "./cli";
+import { IQuorum } from "@fluidframework/protocol-definitions";
 
 /**
  * The initializeChaincode method takes in a document and a desired npm package and establishes a code quorum
@@ -41,7 +42,7 @@ async function fetchCore(loader: Loader, url: string) {
     }
 
     const fluidObject = response.value as IFluidObject;
-
+    
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     launchCLI(fluidObject);
 }
@@ -52,6 +53,7 @@ async function fetchCore(loader: Loader, url: string) {
  * quorumed on.
  */
 export async function fetchFluidObject(loader: Loader, container: Container, url: string) {
+    console.log("fetchfluid");
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchCore(loader, url);
     container.on("contextChanged", () => {
@@ -59,3 +61,32 @@ export async function fetchFluidObject(loader: Loader, container: Container, url
         fetchCore(loader, url);
     });
 }
+
+
+/**
+ * Close the container if none of the members of Quorum
+ * @param document 
+ */
+export async function CheckMembersofQuorum(document: Container,) {
+    const quorum: IQuorum = document.getQuorum();
+    const members = quorum.getMembers()
+    
+    return members.size
+}
+
+/**
+ * This function polls quorum and close the container if there is no member
+ * @param document 
+ */
+export async function PollAndCloseDocument(document: Container) {
+
+    const intervalObj = setInterval(async function () {
+        if (await CheckMembersofQuorum(document) <= 1) {
+            document.close();
+            clearInterval(intervalObj)
+        }
+    }, 5000);
+
+}
+
+

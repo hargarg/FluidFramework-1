@@ -26,17 +26,20 @@ export class NodeCodeLoader {
 
     public async load<T>(pkg: any): Promise<T> {
         let packageName = "";
+        //console.log(packageName,"---------------------------------------------------------------", pkg);
         if (typeof pkg.package === "string") {
             packageName = pkg.package;
         } else {
             packageName = `${pkg.package.name}@${pkg.package.version}`;
         }
-        const codeEntrypoint = await this.installOrWaitForPackages(packageName);
+        
+        const codeEntrypoint = packageName.substring(0, packageName.lastIndexOf("@"));; // await this.installOrWaitForPackages(packageName);
+        console.log("codeEntrypoint.....................................................",codeEntrypoint);
         const entry = import(codeEntrypoint);
         return entry;
     }
 
-    private async installOrWaitForPackages(pkg: string): Promise<string> {
+    public async installOrWaitForPackages(pkg: string): Promise<string> {
         // eslint-disable-next-line @typescript-eslint/prefer-regexp-exec
         const fluidObjects = pkg.match(/(.*)\/(.*)@(.*)/);
         // eslint-disable-next-line no-null/no-null

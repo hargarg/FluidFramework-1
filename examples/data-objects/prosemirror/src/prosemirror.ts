@@ -3,16 +3,12 @@
  * Licensed under the MIT License.
  */
 
-import { EventEmitter } from "events";
 import {
-    IFluidLoadable,
-    IFluidRouter,
     IRequest,
     IResponse,
     IFluidHandle,
 } from "@fluidframework/core-interfaces";
-import { FluidObjectHandle, FluidDataStoreRuntime } from "@fluidframework/datastore";
-import { ISharedMap, SharedMap } from "@fluidframework/map";
+import { DataObject, DataObjectFactory } from "@fluidframework/aqueduct";
 import {
     IMergeTreeInsertMsg,
     ReferenceType,
@@ -20,13 +16,18 @@ import {
     MergeTreeDeltaType,
     createMap,
 } from "@fluidframework/merge-tree";
-import { IFluidDataStoreContext, IFluidDataStoreFactory } from "@fluidframework/runtime-definitions";
-import { IFluidDataStoreRuntime, IChannelFactory } from "@fluidframework/datastore-definitions";
 import { SharedString } from "@fluidframework/sequence";
-import { IFluidHTMLOptions, IFluidHTMLView } from "@fluidframework/view-interfaces";
-import { EditorView } from "prosemirror-view";
+import { IFluidHTMLView } from "@fluidframework/view-interfaces";
 import { nodeTypeKey } from "./fluidBridge";
 import { FluidCollabManager, IProvideRichTextEditor } from "./fluidCollabManager";
+import { ProseMirrorView } from "./prosemirrorView";
+import { IStorageUtil, StorageUtil } from './storage';
+import { convertToMarkdown, getNodeFromMarkdown } from './utils';
+import { BlobItem } from "@azure/storage-blob";
+import { ISyncMessageHandler, TestComponent, SyncBridge, SyncMessage, SyncMessageHandlerResult, SyncMessageType } from "syncbridge"
+import { AzureCognitiveConnector } from "./connector/AzureCognitiveConnector";
+import { SharedMap } from "../../../../packages/dds/sequence/node_modules/@fluidframework/map/dist";
+
 
 function createTreeMarkerOps(
     treeRangeLabel: string,
@@ -56,79 +57,53 @@ function createTreeMarkerOps(
     ];
 }
 
-class ProseMirrorView implements IFluidHTMLView {
-    private content: HTMLDivElement;
-    private editorView: EditorView;
-    private textArea: HTMLDivElement;
-    public get IFluidHTMLView() { return this; }
 
-    public constructor(private readonly collabManager: FluidCollabManager) { }
+export function debounceUtil(functionToBeExecuted, debounceInterval) {
+    let timeoutForDebouncing;
 
-    public render(elm: HTMLElement, options?: IFluidHTMLOptions): void {
-        // Create base textarea
-        if (!this.textArea) {
-            this.textArea = document.createElement("div");
-            this.textArea.classList.add("editor");
-            this.content = document.createElement("div");
-            this.content.style.display = "none";
-            this.content.innerHTML = "";
-        }
+    return function executorFunction(...args) {
+        const executeAfterDebounceInterval = () => {
+            console.log("Debouncing util has executed");
 
-        // Reparent if needed
-        if (this.textArea.parentElement !== elm) {
-            this.textArea.remove();
-            this.content.remove();
-            elm.appendChild(this.textArea);
-            elm.appendChild(this.content);
-        }
+            timeoutForDebouncing = null;
 
-        if (!this.editorView) {
-            this.editorView = this.collabManager.setupEditor(this.textArea);
-        }
-    }
+            functionToBeExecuted(...args);
+        };
 
-    public remove() {
-        // Maybe implement this some time.
+        /**
+         * If another call comes to the
+         * function within the same
+         * debouncing interval then
+         * clear the existing timeout and restart
+         * the timeout
+         */
+        clearTimeout(timeoutForDebouncing);
+
+        timeoutForDebouncing = setTimeout(() => { executeAfterDebounceInterval() }, debounceInterval);
     }
 }
 
 /**
  * ProseMirror builds a Fluid collaborative text editor on top of the open source text editor ProseMirror.
- * It has its own implementation of IFluidLoadable and does not extend PureDataObject / DataObject. This is
- * done intentionally to serve as an example of exposing the URL and handle via IFluidLoadable.
  */
-export class ProseMirror extends EventEmitter
-    implements IFluidLoadable, IFluidRouter, IFluidHTMLView, IProvideRichTextEditor {
-    public static async load(runtime: IFluidDataStoreRuntime, context: IFluidDataStoreContext) {
-        const collection = new ProseMirror(runtime, context);
-        await collection.initialize();
+export class ProseMirror extends DataObject implements IFluidHTMLView, IProvideRichTextEditor, ISyncMessageHandler {
 
-        return collection;
-    }
-
-    public get handle(): IFluidHandle<this> { return this.innerHandle; }
-
-    public get IFluidLoadable() { return this; }
-    public get IFluidRouter() { return this; }
     public get IFluidHTMLView() { return this; }
     public get IRichTextEditor() { return this.collabManager; }
 
-    public url: string;
     public text: SharedString;
-    private root: ISharedMap;
-    private collabManager: FluidCollabManager;
+    public collabManager: FluidCollabManager;
     private view: ProseMirrorView;
-    private readonly innerHandle: IFluidHandle<this>;
+    public StorageUtilModule: IStorageUtil;
+    public snapshotList: BlobItem[] = [];
+    private readonly sbClientKey: string = 'sbClientKey';
+    private syncBridge!: SyncBridge;
+   
+    private cognitiveDataMap:SharedMap;
+    // private readonly debouncingInterval: number = 1000;
 
-    constructor(
-        private readonly runtime: IFluidDataStoreRuntime,
-        /* Private */ context: IFluidDataStoreContext,
-    ) {
-        super();
 
-        this.url = context.id;
-        this.innerHandle = new FluidObjectHandle(this, this.url, runtime.IFluidHandleContext);
-    }
+    public static get Name() { return "@fluid-example/prosemirror"; }
 
     public async request(request: IRequest): Promise<IResponse> {
         return {
@@ -137,65 +112,186 @@ export class ProseMirror extends EventEmitter
             value: this,
         };
     }
+    public get ISyncMessageHandler() {
+        return this;
+      }
 
-    private async initialize() {
-        if (!this.runtime.existing) {
-            this.root = SharedMap.create(this.runtime, "root");
-            const text = SharedString.create(this.runtime);
+    public handleSyncMessage = async (syncMessage: SyncMessage): Promise<SyncMessageHandlerResult | undefined> => {
+        console.log("getRecognizedService",syncMessage)
+        if(syncMessage.opCode==="RETURN_DATA")
+        
+        this.cognitiveDataMap.set(syncMessage.payload.data.textSearch, syncMessage.payload.data.searchResult);
 
-            const ops = createTreeMarkerOps("prosemirror", 0, 1, "paragraph");
-            text.groupOperation({ ops, type: MergeTreeDeltaType.GROUP });
-            text.insertText(1, "Hello, world!");
+        
+          return {success:true}
+      }
 
-            this.root.set("text", text.handle);
-            this.root.bindToContext();
-        }
 
-        this.root = await this.runtime.getChannel("root") as ISharedMap;
+    protected async initializingFirstTime() {
+        const text = SharedString.create(this.runtime);
+        // const testComponent = await TestComponent.getFactory().createChildInstance(
+        //     this.context
+        // );
+        const ops = createTreeMarkerOps("prosemirror", 0, 1, "paragraph");
+        text.groupOperation({ ops, type: MergeTreeDeltaType.GROUP });
+        text.insertText(1, "Hello, world!");
+
+        this.root.set("text", text.handle);
+       // this.root.set("testcompo", testComponent.IFluidHandle)
+
+        const azureConnector = await AzureCognitiveConnector.getFactory().createChildInstance(this.context)
+        const syncBridge = await SyncBridge.getFactory().createChildInstance(this.context, { connectorHandle: azureConnector.handle });
+        this.root.set(this.sbClientKey, syncBridge.handle);
+
+        const cognitiveData = SharedMap.create(this.runtime);
+        this.root.set("cognitive", cognitiveData.handle);
+        console.log("prosemirror initializing>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+    }
+
+    protected async hasInitialized() {
+
+
         this.text = await this.root.get<IFluidHandle<SharedString>>("text").get();
-
+        // console.log(await this.root.get("testcompo").get());
         this.collabManager = new FluidCollabManager(this.text, this.runtime.loader);
+        this.syncBridge = await this.root.get(this.sbClientKey).get();
+        this.cognitiveDataMap = await this.root.get("cognitive").get();
+        let schema = await this.collabManager.getSchema();
+        const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
+        await client.registerSyncMessageHandler(this);
+        // this.StorageUtilModule = new StorageUtil(); //TO Be removed
+        if (!isWebClient()) {
+            this.StorageUtilModule = new StorageUtil(this.context.documentId);
+            let initialVal = await this.StorageUtilModule.getMardownDataAndConvertIntoNode(schema);
+            if (initialVal) {
+                await this.collabManager.initializeValue(initialVal)
+            };
+        }
+        else {
+            this.StorageUtilModule = new StorageUtil(this.context.documentId, true);
+        }
+        this.snapshotList = await this.StorageUtilModule.getSnapShotlist();
 
-        // Access for debugging
-        // eslint-disable-next-line dot-notation
-        window["easyComponent"] = this;
+        this.hasValueChanged();
+        this.hasSnapshotChanged();
+        this.collabManager?.on("selection", async ({textContent, cb}) => {
+            const trimmedtext = textContent.trim()
+            await this.getRecognizedService(trimmedtext);
+            await this.cognitiveDataMap.wait(trimmedtext)
+            console.log(textContent);
+            const final_arr = []
+         //  cb(JSON.stringify(this.cognitiveDataMap.get(trimmedtext)));
+         if(this.cognitiveDataMap.get(trimmedtext)){
+             const val = this.cognitiveDataMap.get(trimmedtext);
+            if(val.recognizedLinkedEntities){
+                final_arr.push({name:val.recognizedLinkedEntities.name})
+                final_arr.push({url:val.recognizedLinkedEntities.url})
+
+            };
+            if(val.recognizedEntities){
+            final_arr.push({category:val.recognizedEntities.category})
+            final_arr.push({subCategory:val.recognizedEntities.subCategory})
+
+        }
+         }
+    
+         cb(final_arr)
+        })
+        console.log("prosemirror initializeddddddd<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<>>>>>>>>>>")
+
+    }
+
+    // ek local map 
+    public hasSnapshotChanged() {
+        this.on("snapshotTaken", (snapshotList) => {
+            this.snapshotList = snapshotList;
+            this.emit("snapshotAdded", this.snapshotList);
+        })
+    }
+    public hasValueChanged() {
+        this.collabManager?.on("valueChanged", (changed) => {
+            this.emit("valueChanged")
+            if (!isWebClient()) {
+                // let debouncedFunction = debounceUtil(() => { this.StorageUtilModule.storeDeltaChangesOfEditor(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc) }, this.debouncingInterval);
+                // debouncedFunction();
+                
+                //  this.submitUpdateStore();
+              // this.StorageUtilModule.storeEditorStateAsMarkdown(this.collabManager.getSchema(), this.collabManager.getCurrentState()?.doc);
+            }
+            // console.log("something changed ", changed);
+        });
     }
 
     public render(elm: HTMLElement): void {
-        if (!this.view) {
-            this.view = new ProseMirrorView(this.collabManager);
+        if (isWebClient()) {
+            if (!this.view) {
+                this.view = new ProseMirrorView(this);
+            }
+            this.view.render(elm);
+            document.getElementById('input-file').addEventListener('change', e => { this.onFileSelect(e) }, false);
+
         }
-        this.view.render(elm);
+    }
+
+    public getSnapShots(blobUrl) {
+
+        console.log(this.StorageUtilModule);
+    }
+
+    public onFileSelect(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        const _this = this;
+        reader.onload = async (e) => {
+            const textFile = reader.result as string;
+            const node = await getNodeFromMarkdown(_this.collabManager.getSchema(), textFile);
+            await _this.collabManager.initializeValue(node);
+            console.log(textFile);
+        };
+        reader.readAsText(file);
+    }
+
+    public async submitUpdateStore(){
+        const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
+        const data = this.collabManager.getCurrentState()?.doc
+        let _t = await convertToMarkdown(data);
+        const UPDATE_STORE_DATA = {
+          opCode: 'UPDATE_STORE_DATA',
+          type: SyncMessageType.SyncOperation,
+          payload: {data:_t }
+        } as SyncMessage;
+        client.submit(UPDATE_STORE_DATA);
+    }
+
+    public async getRecognizedService(word){
+        const client = await this.syncBridge?.ISyncBridgeClientProvider.getSyncBridgeClient();
+        const data = this.collabManager.getCurrentState()?.doc
+        let _t = await convertToMarkdown(data);
+        console.log("_______getRecognizedService______",_t);
+        const GET_DATA = {
+          opCode: 'GET_DATA',
+          type: SyncMessageType.SyncOperation,
+          payload: {data:{docdata:_t , keyword:word}}
+        } as SyncMessage;
+        client.submit(GET_DATA);
     }
 }
 
-class ProseMirrorFactory implements IFluidDataStoreFactory {
-    public static readonly type = "@fluid-example/prosemirror";
-    public readonly type = ProseMirrorFactory.type;
 
-    public get IFluidDataStoreFactory() { return this; }
 
-    public async instantiateDataStore(context: IFluidDataStoreContext) {
-        const dataTypes = new Map<string, IChannelFactory>();
-        const mapFactory = SharedMap.getFactory();
-        const sequenceFactory = SharedString.getFactory();
+export const ProseMirrorFactory = new DataObjectFactory(
+    ProseMirror.Name,
+    ProseMirror,
+    [SharedString.getFactory(), SharedMap.getFactory()],
+    {},
+    [
+        [SyncBridge.name, import("syncbridge").then((m) => m.SyncBridge.getFactory())],
+        [TestComponent.name, import("syncbridge").then((m) => m.TestComponent.getFactory())],
+        [AzureCognitiveConnector.name, import("./connector/AzureCognitiveConnector").then((m) => m.AzureCognitiveConnector.getFactory())]
+    ]
+);
 
-        dataTypes.set(mapFactory.type, mapFactory);
-        dataTypes.set(sequenceFactory.type, sequenceFactory);
-
-        const runtime = FluidDataStoreRuntime.load(
-            context,
-            dataTypes,
-        );
-
-        const proseMirrorP = ProseMirror.load(runtime, context);
-        runtime.registerRequestHandler(async (request: IRequest) => {
-            const proseMirror = await proseMirrorP;
-            return proseMirror.request(request);
-        });
-
-        return runtime;
-    }
-}
-
-export const fluidExport = new ProseMirrorFactory();
+const isWebClient = () => {
+    return typeof window !== "undefined" && typeof window.document !== "undefined";
+};
